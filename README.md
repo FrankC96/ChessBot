@@ -22,3 +22,8 @@ and render with streamlit to a user-friendly browser.
 - Add king castling
 - Add pawn promotion
 - Add human player
+
+# Docs:
+
+---
+To build the documentation with mkdocs run `mkdocs serve` in the project directory.

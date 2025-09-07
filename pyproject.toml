@@ -45,7 +45,9 @@ dependencies = [
     "typing-extensions (==4.15.0)",
     "tzdata (==2025.2)",
     "urllib3 (==2.5.0)",
-    "watchdog (==6.0.0)"
+    "watchdog (==6.0.0)",
+    "mkdocs (>=1.6.1,<2.0.0)",
+    "mkdocstrings[python] (>=0.30.0,<0.31.0)"
 ]
 keywords = [ "packaging", "poetry" ]
 
