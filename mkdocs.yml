@@ -1,0 +1,19 @@
+site_name: Documentation
+
+extra_css:
+  - css/custom_font.css
+
+plugins:
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+
+theme:
+  name: "readthedocs"
+
+nav:
+  - Chess AI Docs: index.md
+  - Piece class: piece.md
+  - Board class: board.md

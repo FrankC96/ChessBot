@@ -1,0 +1,5 @@
+/* chatGPT: Proper fonts for making sure the chess characters are properly rendered in the documentation */
+
+body, p, li, td, th, code, pre {
+    font-family: 'DejaVu Sans', 'Segoe UI', Arial, sans-serif !important;
+}
