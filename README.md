@@ -1,5 +1,6 @@
 
 # CHESS AI
+[![CI](https://github.com/FrankC96/ChessBot/actions/workflows/tests.yml/badge.svg)](https://github.com/FrankC96/ChessBot/actions/workflows/tests.yml)
 
 ---
 In this repository I am using chess as an example for the minimax alpha-beta pruning algorithm.
