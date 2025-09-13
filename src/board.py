@@ -2,7 +2,7 @@ import copy
 import streamlit as st
 
 from typing import List, Tuple, Optional
-from src.piece import Piece, PieceFactory
+from piece import Piece, PieceFactory
 
 
 class Board:
