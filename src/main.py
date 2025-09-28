@@ -17,15 +17,15 @@ if __name__ == "__main__":
 
     clock = pygame.time.Clock()
 
-    first_selection: Optional[Block] = None
-    second_selection: Optional[Block] = None
+    selected_block: Optional[Block] = None
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
-                first_selection = BOARD.find_by_pos(event.pos)
+                selected_block = BOARD.find_by_pos(event.pos)
 
-                first_selection.select_block(BOARD)
+                selected_block.select_block(BOARD)
+                print(selected_block)
 
             if event.type == pygame.QUIT:
                 running = False

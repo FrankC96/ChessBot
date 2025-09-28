@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import copy
 from pathlib import Path
 
 from typing import List, Tuple, Optional, TYPE_CHECKING
@@ -147,6 +147,9 @@ class Piece:
 
         self.m_factory = MoveFactory()
 
+    def __repr__(self):
+        return f"Piece {self.name} - {self.team} at position {self.ind_pos}"
+
     def _check_position_bounds(self, pos: Tuple[int, int]) -> Optional[Tuple[int, int]]:
         """
         Method to validate a Piece's position and ensure that it's inside the 8x8 grid.
@@ -255,7 +258,7 @@ class Piece:
                     (1, 0),
                     (-1, -1),
                     (1, 1),
-                    (-1, -1),
+                    (-1, 1),
                     (1, -1),
                 ]
                 for dir in directions:
@@ -476,6 +479,7 @@ class Piece:
 
             case "pawn":
                 start_pos = self.ind_pos
+
                 home_pos = (
                     2
                     if (start_pos[1] == 1 and self.team == "w")
@@ -485,7 +489,10 @@ class Piece:
                 pawn_dir = 1 if self.team == "w" else -1
 
                 # directions=[forward, forward_right, forward_left]
-                directions = [(0, pawn_dir * home_pos), (1, pawn_dir), (-1, pawn_dir)]
+                directions = [(0, pawn_dir), (1, pawn_dir), (-1, pawn_dir)]
+                if home_pos == 2:
+                    directions.append((0, pawn_dir * 2))
+
                 for dir in directions:
                     end_pos = self._check_position_bounds(
                         (start_pos[0] + dir[0], start_pos[1] + dir[1])
@@ -502,7 +509,7 @@ class Piece:
                         end_pos
                         and unknown_piece
                         and self.team != unknown_piece.team
-                        and dir != (0, pawn_dir * home_pos)
+                        and (dir != (0, pawn_dir * 1) or dir != (0, pawn_dir * 2))
                     ):
                         # Cell is occupied by enemy team, capture is registered as a valid move
                         self.available_moves.append(
@@ -516,14 +523,21 @@ class Piece:
                             )
                         )
 
-                    elif not unknown_piece and dir == (0, pawn_dir * home_pos):
-                        # Since the first move examined is the +2 forward
-                        # We need to also examine the +1 forward if there is any pawn and not hover above it
+                    elif not unknown_piece and (
+                        dir == (0, pawn_dir * 1) or dir == (0, pawn_dir * 2)
+                    ):
+
                         inter_piece = board.find_by_pos(
-                            (end_pos[0], end_pos[1] - pawn_dir), return_piece=True
+                            (end_pos[0], end_pos[1] * pawn_dir), return_piece=True
                         )
                         if inter_piece:
-                            break
+                            if self.team == "w" and home_pos == 2:
+                                print(
+                                    f"Found piece {inter_piece.name} {inter_piece.team} at {inter_piece.ind_pos}"
+                                )
+                            # For the 2 step move originating from home,
+                            # check if there is a piece 1 step ahead before moving.
+                            continue
                         else:
                             # Cell is unoccupied, move
                             self.available_moves.append(
@@ -536,23 +550,10 @@ class Piece:
                                     captured_piece=None,
                                 )
                             )
-                        if home_pos == 2:
-                            # FIXME:
-                            if not inter_piece:
-                                self.available_moves.append(
-                                    self.m_factory(
-                                        piece=self,
-                                        start_pos=start_pos,
-                                        end_pos=(end_pos[0], end_pos[1] - pawn_dir),
-                                        score=0.0,
-                                        is_capture=False,
-                                        captured_piece=None,
-                                    )
-                                )
 
                     if end_pos and unknown_piece and self.team == unknown_piece.team:
                         # Cell occupied by same team, check next move
-                        break
+                        continue
 
         return list(set(self.available_moves))
 

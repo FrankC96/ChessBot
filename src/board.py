@@ -34,7 +34,8 @@ class Block:
         self.clicked_color = clicked_color
 
         self.poss_move: Optional[bool] = None
-        self.block_select_states: List[bool] = cycle([True, False])
+        self.block_clicked: List[bool] = cycle([True, False])
+        self.block_p_move: List[bool] = cycle([True, False])
 
         # Rect(left, top, width, height) -> Rect
         self.pg_rect = pygame.Rect(
@@ -44,23 +45,32 @@ class Block:
             block_size // 2,
         )
 
+    def __repr__(self):
+        return f"Block at {self.pos}, occupied {self.piece}"
+
     def select_block(self, board):
+        poss_move_toggle: bool = False
         blocks = flatten_list(board.blocks)
         for block in blocks:
             if block.clicked:
                 block.clicked = False
 
             if block.poss_move:
+                poss_move_toggle = True
                 block.poss_move = False
 
         if self.piece:
+            print("I am in")
             av_moves = self.piece.calculate_moves(board)
             for mv in av_moves:
                 x, y = mv.end_pos
 
-                board.blocks[x][y].poss_move = True
+                if poss_move_toggle:
+                    pass
+                else:
+                    board.blocks[x][y].poss_move = True
 
-        self.clicked = next(self.block_select_states)
+            self.clicked = next(self.block_clicked)
         board.clicked_blocks.append(self)
 
     def draw(self, screen: pygame.Surface):
@@ -87,7 +97,7 @@ class Block:
 
 class BlockFactory:
     def __call__(
-        pos: Tuple[int, int], piece: str, color: Tuple[int, int], block_size: int
+        self, pos: Tuple[int, int], piece: str, color: Tuple[int, int], block_size: int
     ):
         return Block(pos, piece, color, block_size)
 
@@ -98,8 +108,9 @@ class Board:
 
         # Get screen widht, height borders
         self.s_width, self.s_height = self.screen.get_size()
-        self.p_factory = PieceFactory((self.s_width, self.s_height))
-        self.m_factory = MoveFactory()
+        self.block_factory = BlockFactory()
+        self.piece_factory = PieceFactory((self.s_width, self.s_height))
+        self.move_factory = MoveFactory()
 
         # A buffer to track all clicked blocks in the board
         self.clicked_blocks = deque([], maxlen=2)
@@ -122,7 +133,7 @@ class Board:
             for j in range(8):
                 block_color = (255, 255, 255) if (i + j) % 2 == 0 else (0, 100, 0)
                 row_blocks.append(
-                    Block(
+                    self.block_factory(
                         pos=(i, j),
                         piece=None,
                         color=block_color,
@@ -143,7 +154,7 @@ class Board:
                 else:
                     temp_team = "b"
 
-                self.pieces.append(self.p_factory(name, (y, x), temp_team))
+                self.pieces.append(self.piece_factory(name, (y, x), temp_team))
                 self.blocks[y][x].piece = self.pieces[-1]
                 i += 1
 
@@ -190,16 +201,16 @@ class Board:
         piece = blocks[0].piece
 
         if piece:
-            av_moves = piece.calculate_moves(self)
-            if piece:
-                av_moves = [p.end_pos for p in av_moves]
+            av_moves = [p.end_pos for p in piece.calculate_moves(self)]
 
-                if blocks[1].pos in av_moves:
-                    blocks[1].piece = blocks[0].piece
-                    blocks[1].piece.ind_pos = blocks[1].pos
-                    blocks[0].piece = None
+            if blocks[1].pos in av_moves:
+                blocks[1].piece = blocks[0].piece
+                blocks[1].piece.ind_pos = blocks[1].pos
+                blocks[1].piece.img_path = blocks[1].piece.img_path
+                blocks[0].piece = None
 
-                    self.clear_selections()
+                # print([b.pos for b in self.clicked_blocks])
+                self.clear_selections()
 
     def update(self):
         if len(self.clicked_blocks) > 1:
