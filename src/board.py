@@ -110,9 +110,6 @@ class Block:
                                 block.clicked = False
                                 block.poss_move = False
 
-                    if start != end and board.current_player != end.piece.team:
-                        board.current_player = next(board.players)
-                #
                 board.clicked_blocks.clear()
 
             else:
@@ -139,13 +136,12 @@ class Block:
             pygame.draw.rect(screen, (155, 204, 255), self.pg_rect)
 
         if self.piece:
-            self.pg_img = pygame.image.load(self.piece.img_path)
-
+            pg_img = pygame.image.load(self.piece.img_path)
             screen.blit(
-                self.pg_img,
+                pg_img,
                 (
-                    self.pg_rect.center[0] - self.pg_img.get_width() // 2,
-                    self.pg_rect.center[1] - self.pg_img.get_width() // 2,
+                    self.pg_rect.center[0] - pg_img.get_width() // 2,
+                    self.pg_rect.center[1] - pg_img.get_width() // 2,
                 ),
             )
 
@@ -158,20 +154,20 @@ class BlockFactory:
 
 
 class Board:
-    def __init__(self, screen: pygame.Surface, player: str):
+    def __init__(self, width: int, height: int, player: str):
         assert player in ["w", "b"], f"Player can be eiter white ('w') or black ('b')"
 
-        self.screen = screen
-
         # Get screen widht, height borders
-        self.s_width, self.s_height = self.screen.get_size()
+        self.s_width, self.s_height = width, height
         self.block_factory = BlockFactory()
         self.piece_factory = PieceFactory((self.s_width, self.s_height))
         self.move_factory = MoveFactory()
 
-        self.players: List[str] = cycle(["b", "w"])
+        self.players: List[str] = ["w" if player == "b" else "b", player]
+        self.c_players = cycle(self.players)
         self.current_player = player
-        self.human_player = player
+        self.human_player = self.players[1]
+        self.bot_player = self.players[0]
 
         # A buffer to track all clicked blocks in the board
         self.clicked_blocks = deque([], maxlen=2)
@@ -280,7 +276,7 @@ class Board:
             if blocks[1].pos in av_moves:
                 # Remove the captured piece
                 if blocks[0].piece and blocks[1].piece:
-                    print(f"Removing block {blocks[1].piece}")
+                    # print(f"Removing block {blocks[1].piece}")
                     self.pieces.remove(blocks[1].piece)
 
                 blocks[1].piece = blocks[0].piece
@@ -291,17 +287,21 @@ class Board:
                 blocks[0].piece = None
 
             self.clear_selections()
+            self.current_player = next(self.c_players)
 
-    def update(self):
-        max_width, _ = self.screen.get_size()
-
+    def update(self, screen):
         pygame.font.init()
         font = pygame.font.Font(None, 36)
 
-        if self.current_player == self.human_player:
-            curr_player_text = font.render("Your move!", True, (0, 0, 0))
+        if self.human_player == "w":
+            human_player_text = font.render("White: Human player!", True, (0, 0, 0))
         else:
-            curr_player_text = font.render("Searching for best move!", True, (0, 0, 0))
+            human_player_text = font.render("Black: Human player!", True, (0, 0, 0))
+
+        if self.bot_player == "w":
+            bot_player_text = font.render("White: Bot player!", True, (0, 0, 0))
+        else:
+            bot_player_text = font.render("Black: Bot player!", True, (0, 0, 0))
 
         if self.game_over:
             winner_text = font.render(f"Winner is {self.winner}!", True, (0, 0, 0))
@@ -314,27 +314,31 @@ class Board:
         # Iterate all board blocks and draw them
         for i in range(8):
             for j in range(8):
-                self.blocks[i][j].draw(self.screen)
+                self.blocks[i][j].draw(screen)
 
         board_width_bounds = self.blocks[7][7].pg_rect.right
 
         # Draw information about the game
         # description container
         pygame.draw.rect(
-            self.screen,
+            screen,
             (0, 0, 0),
             pygame.Rect(
-                board_width_bounds + 30, 25, max_width - (board_width_bounds + 40), 600
+                board_width_bounds + 30,
+                25,
+                self.s_width - (board_width_bounds + 40),
+                600,
             ),
             5,
         )
 
-        # Print current player
-        self.screen.blit(curr_player_text, (board_width_bounds + 50, 100))
+        # Print current players
+        screen.blit(human_player_text, (board_width_bounds + 50, 100))
+        screen.blit(bot_player_text, (board_width_bounds + 50, 200))
 
         # Print winner of the game
         if winner_text:
-            self.screen.blit(winner_text, (board_width_bounds + 50, 200))
+            screen.blit(winner_text, (board_width_bounds + 50, 300))
 
     def serialize(self):
         """
@@ -361,6 +365,7 @@ class Board:
 
             board_state += str(piece.ind_pos[0])
             board_state += str(piece.ind_pos[1])
+        board_state += self.current_player
 
         self.board_states.append(board_state)
 
@@ -423,4 +428,71 @@ class Board:
                 self.blocks[x][y].piece = piece
 
         else:
-            print("No previous stored states in board.")
+            pass
+            # print("No previous stored states in board.")
+
+    def get_pieces_for_player(self, player: str) -> List[Piece]:
+        """
+        Method to return all the pieces a player currently has on the board.
+
+        Parameters
+        ----------
+        player  : str
+            The team the player is in.
+
+        Returns
+        -------
+        List[Piece]
+            A list of all the pieces a player has.
+        """
+        return [piece for piece in self.pieces if piece.team == player]
+
+    def score_board(self, player: str) -> float:
+        """
+        Method to evaluate the current state of the board.
+        Each piece is given a weight value. The current implementation
+        sums all the pieces values each player posses and also the
+        number of all possible moves for each player.
+
+        Parameters
+        ----------
+        player  : str
+            The maximizing player.
+        Returns
+        -------
+        float
+            The actual score minimax sees.
+        """
+        PIECE_VALUES = {
+            "king": 1000,
+            "queen": 9,
+            "rook": 5,
+            "bishop": 3,
+            "knight": 3,
+            "pawn": 1,
+        }
+        player_score: int = 0
+        opponent_score: int = 0
+        player_valid_moves: int = 0
+        opponent_valid_moves: int = 0
+
+        max_player = self.bot_player
+        for piece in self.pieces:
+            value: float = PIECE_VALUES.get(piece.name, 0)
+
+            if piece.team == max_player:
+                player_score += value
+                player_valid_moves += len(piece.calculate_moves(self))
+            else:
+                opponent_score += value
+                opponent_valid_moves += len(piece.calculate_moves(self))
+
+        # The neutral point is 0.0 which is the starting score.
+        # If player_score > opponent_score we have a positive score and a negative likewise.
+        # The same applies for the valid_moves
+        return (player_score - opponent_score) + (
+            player_valid_moves - opponent_valid_moves
+        )
+
+    def clone(self):
+        return copy.deepcopy(self)

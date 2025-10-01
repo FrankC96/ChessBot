@@ -2,16 +2,8 @@ def minimax(board, depth, player, a=-float("inf"), b=float("inf")):
     """
     A simple implementation of the minimax function with alpha-beta pruning.
     """
-    if depth == 0 or board.pieces:
-        if not board.has_king("w"):
-            return float("inf"), None, None
-
-        elif not board.has_king("b"):
-            return -float("inf"), None, None
-
-        else:
-            score = board.score_board(player)
-
+    if depth == 0 or board.game_over:
+        score = board.score_board(player)
         return score, None, None
 
     if player == "w":
@@ -23,9 +15,11 @@ def minimax(board, depth, player, a=-float("inf"), b=float("inf")):
             sorted_moves = sorted(moves, key=lambda x: x.score, reverse=True)
             for move in sorted_moves:
                 new_board = board.clone()
-                new_piece = new_board.find_by_pos(piece.pos)
-                new_piece.move(new_board, move)
+                new_piece = new_board.find_by_pos(piece.ind_pos, return_piece=False)
+                x, y = move.end_pos
+                new_board.move([new_piece, board.blocks[x][y]])
                 score, _, _ = minimax(new_board, depth - 1, "b", a, b)
+
                 if score > max_score:
                     max_score = score
                     best_piece = piece
@@ -45,9 +39,11 @@ def minimax(board, depth, player, a=-float("inf"), b=float("inf")):
             sorted_moves = sorted(moves, key=lambda x: x.score, reverse=True)
             for move in sorted_moves:
                 new_board = board.clone()
-                new_piece = new_board.find_by_pos(piece.pos)
-                new_piece.move(new_board, move)
+                new_piece = new_board.find_by_pos(piece.ind_pos, return_piece=False)
+                x, y = move.end_pos
+                new_board.move([new_piece, board.blocks[x][y]])
                 score, _, _ = minimax(new_board, depth - 1, "w", a, b)
+
                 if score < min_score:
                     min_score = score
                     best_piece = piece
