@@ -191,86 +191,31 @@ class Piece:
         """
         self.available_moves: List[Move] = []
 
-        match self.name:
-            case "king":
-                start_pos = self.ind_pos
-                # directions=[forward, backward, left, right, forward diagonal right, forward diagonal left, backward diagonal right, backward diagonal left]
-                directions = [
-                    (0, -1),
-                    (0, 1),
-                    (-1, 0),
-                    (1, 0),
-                    (1, 1),
-                    (1, -1),
-                    (1, 1),
-                    (-1, -1),
-                ]
-                for dir in directions:
-                    end_pos = self._check_position_bounds(
-                        (start_pos[0] + dir[0], start_pos[1] + dir[1])
-                    )
-
-                    if not end_pos:
-                        continue
-
-                    unknown_piece = board.find_by_pos(end_pos, return_piece=True)
-
-                    # There are 3 states a board cell can be in.
-                    # 1. empty  2. Occupied by same team    3. Occupied by enemy team
-                    if end_pos and unknown_piece and self.team != unknown_piece.team:
-
-                        # Cell is occupied by enemy team, capture is registered as a valid move
-                        self.available_moves.append(
-                            self.m_factory(
-                                piece=self,
-                                start_pos=start_pos,
-                                end_pos=end_pos,
-                                score=10000.0,
-                                is_capture=True,
-                                captured_piece=unknown_piece,
-                            )
-                        )
-
-                    elif not unknown_piece:
-                        # Cell is unoccupied, move
-                        self.available_moves.append(
-                            self.m_factory(
-                                piece=self,
-                                start_pos=start_pos,
-                                end_pos=end_pos,
-                                score=1000.0,
-                                is_capture=False,
-                                captured_piece=None,
-                            )
-                        )
-                    if end_pos and unknown_piece and self.team == unknown_piece.team:
-                        # Cell occupied by same team, check next move
-                        continue
-
-            case "queen":
-                start_pos = self.ind_pos
-
-                # directions=[forward, backward, left, right, left_forward, right_forward, left_backward, right_backward]
-                directions = [
-                    (0, 1),
-                    (0, -1),
-                    (-1, 0),
-                    (1, 0),
-                    (-1, -1),
-                    (1, 1),
-                    (-1, 1),
-                    (1, -1),
-                ]
-                for dir in directions:
-                    for i in range(1, 8):
+        if board.current_player == self.team:
+            match self.name:
+                case "king":
+                    start_pos = self.ind_pos
+                    # directions=[forward, backward, left, right, forward diagonal right, forward diagonal left, backward diagonal right, backward diagonal left]
+                    directions = [
+                        (0, -1),
+                        (0, 1),
+                        (-1, 0),
+                        (1, 0),
+                        (1, 1),
+                        (1, -1),
+                        (-1, 1),
+                        (-1, -1),
+                    ]
+                    for dir in directions:
                         end_pos = self._check_position_bounds(
-                            (start_pos[0] + i * dir[0], start_pos[1] + i * dir[1])
+                            (start_pos[0] + dir[0], start_pos[1] + dir[1])
                         )
 
                         if not end_pos:
                             continue
 
                         unknown_piece = board.find_by_pos(end_pos, return_piece=True)
+
                         # There are 3 states a board cell can be in.
                         # 1. empty  2. Occupied by same team    3. Occupied by enemy team
                         if (
@@ -278,18 +223,18 @@ class Piece:
                             and unknown_piece
                             and self.team != unknown_piece.team
                         ):
+
                             # Cell is occupied by enemy team, capture is registered as a valid move
                             self.available_moves.append(
                                 self.m_factory(
                                     piece=self,
                                     start_pos=start_pos,
                                     end_pos=end_pos,
-                                    score=600.0,
+                                    score=10000.0,
                                     is_capture=True,
                                     captured_piece=unknown_piece,
                                 )
                             )
-                            break
 
                         elif not unknown_piece:
                             # Cell is unoccupied, move
@@ -298,7 +243,7 @@ class Piece:
                                     piece=self,
                                     start_pos=start_pos,
                                     end_pos=end_pos,
-                                    score=300.0,
+                                    score=1000.0,
                                     is_capture=False,
                                     captured_piece=None,
                                 )
@@ -309,17 +254,206 @@ class Piece:
                             and self.team == unknown_piece.team
                         ):
                             # Cell occupied by same team, check next move
-                            break
+                            continue
 
-            case "rook":
-                start_pos = self.ind_pos
+                case "queen":
+                    start_pos = self.ind_pos
 
-                # directions=[forward, backward, left, right]
-                directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
-                for dir in directions:
-                    for i in range(1, 8):
+                    # directions=[forward, backward, left, right, left_forward, right_forward, left_backward, right_backward]
+                    directions = [
+                        (0, 1),
+                        (0, -1),
+                        (-1, 0),
+                        (1, 0),
+                        (-1, -1),
+                        (1, 1),
+                        (-1, 1),
+                        (1, -1),
+                    ]
+                    for dir in directions:
+                        for i in range(1, 8):
+                            end_pos = self._check_position_bounds(
+                                (start_pos[0] + i * dir[0], start_pos[1] + i * dir[1])
+                            )
+
+                            if not end_pos:
+                                continue
+
+                            unknown_piece = board.find_by_pos(
+                                end_pos, return_piece=True
+                            )
+                            # There are 3 states a board cell can be in.
+                            # 1. empty  2. Occupied by same team    3. Occupied by enemy team
+                            if (
+                                end_pos
+                                and unknown_piece
+                                and self.team != unknown_piece.team
+                            ):
+                                # Cell is occupied by enemy team, capture is registered as a valid move
+                                self.available_moves.append(
+                                    self.m_factory(
+                                        piece=self,
+                                        start_pos=start_pos,
+                                        end_pos=end_pos,
+                                        score=600.0,
+                                        is_capture=True,
+                                        captured_piece=unknown_piece,
+                                    )
+                                )
+                                break
+
+                            elif not unknown_piece:
+                                # Cell is unoccupied, move
+                                self.available_moves.append(
+                                    self.m_factory(
+                                        piece=self,
+                                        start_pos=start_pos,
+                                        end_pos=end_pos,
+                                        score=300.0,
+                                        is_capture=False,
+                                        captured_piece=None,
+                                    )
+                                )
+                            if (
+                                end_pos
+                                and unknown_piece
+                                and self.team == unknown_piece.team
+                            ):
+                                # Cell occupied by same team, check next move
+                                break
+
+                case "rook":
+                    start_pos = self.ind_pos
+
+                    # directions=[forward, backward, left, right]
+                    directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+                    for dir in directions:
+                        for i in range(1, 8):
+                            end_pos = self._check_position_bounds(
+                                (start_pos[0] + i * dir[0], start_pos[1] + i * dir[1])
+                            )
+
+                            if not end_pos:
+                                continue
+
+                            unknown_piece = board.find_by_pos(
+                                end_pos, return_piece=True
+                            )
+                            # There are 3 states a board cell can be in.
+                            # 1. empty  2. Occupied by same team    3. Occupied by enemy team
+                            if (
+                                end_pos
+                                and unknown_piece
+                                and self.team != unknown_piece.team
+                            ):
+                                # Cell is occupied by enemy team, capture is registered as a valid move
+                                self.available_moves.append(
+                                    self.m_factory(
+                                        piece=self,
+                                        start_pos=start_pos,
+                                        end_pos=end_pos,
+                                        score=200.0,
+                                        is_capture=True,
+                                        captured_piece=unknown_piece,
+                                    )
+                                )
+                                break
+
+                            elif not unknown_piece:
+                                # Cell is unoccupied, move
+                                self.available_moves.append(
+                                    self.m_factory(
+                                        piece=self,
+                                        start_pos=start_pos,
+                                        end_pos=end_pos,
+                                        score=100.0,
+                                        is_capture=False,
+                                        captured_piece=None,
+                                    )
+                                )
+
+                            if (
+                                end_pos
+                                and unknown_piece
+                                and self.team == unknown_piece.team
+                            ):
+                                # Cell occupied by same team, check next move
+                                break
+
+                case "bishop":
+                    start_pos = self.ind_pos
+
+                    # directions=[left_forward, right_forward, left_backward, right_backward]
+                    directions = [(1, -1), (1, 1), (-1, -1), (-1, 1)]
+                    for dir in directions:
+                        for i in range(1, 8):
+                            end_pos = self._check_position_bounds(
+                                (start_pos[0] + i * dir[0], start_pos[1] + i * dir[1])
+                            )
+
+                            if not end_pos:
+                                continue
+
+                            unknown_piece = board.find_by_pos(
+                                end_pos, return_piece=True
+                            )
+                            # There are 3 states a board cell can be in.
+                            # 1. empty  2. Occupied by same team    3. Occupied by enemy team
+                            if (
+                                end_pos
+                                and unknown_piece
+                                and self.team != unknown_piece.team
+                            ):
+                                # Cell is occupied by enemy team, capture is registered as a valid move
+                                self.available_moves.append(
+                                    self.m_factory(
+                                        piece=self,
+                                        start_pos=start_pos,
+                                        end_pos=end_pos,
+                                        score=100.0,
+                                        is_capture=True,
+                                        captured_piece=unknown_piece,
+                                    )
+                                )
+                                break
+
+                            elif not unknown_piece:
+                                # Cell is unoccupied, move
+                                self.available_moves.append(
+                                    self.m_factory(
+                                        piece=self,
+                                        start_pos=start_pos,
+                                        end_pos=end_pos,
+                                        score=50.0,
+                                        is_capture=False,
+                                        captured_piece=None,
+                                    )
+                                )
+
+                            if (
+                                end_pos
+                                and unknown_piece
+                                and self.team == unknown_piece.team
+                            ):
+                                # Cell occupied by same team, check next move
+                                break
+
+                case "knight":
+                    start_pos = self.ind_pos
+
+                    directions = [
+                        (1, 2),
+                        (1, -2),
+                        (-1, 2),
+                        (-1, -2),
+                        (2, 1),
+                        (2, -1),
+                        (-2, 1),
+                        (-2, -1),
+                    ]
+                    for dir in directions:
                         end_pos = self._check_position_bounds(
-                            (start_pos[0] + i * dir[0], start_pos[1] + i * dir[1])
+                            (start_pos[0] + dir[0], start_pos[1] + dir[1])
                         )
 
                         if not end_pos:
@@ -334,211 +468,18 @@ class Piece:
                             and self.team != unknown_piece.team
                         ):
                             # Cell is occupied by enemy team, capture is registered as a valid move
-                            self.available_moves.append(
-                                self.m_factory(
-                                    piece=self,
-                                    start_pos=start_pos,
-                                    end_pos=end_pos,
-                                    score=200.0,
-                                    is_capture=True,
-                                    captured_piece=unknown_piece,
-                                )
-                            )
-                            break
-
-                        elif not unknown_piece:
-                            # Cell is unoccupied, move
                             self.available_moves.append(
                                 self.m_factory(
                                     piece=self,
                                     start_pos=start_pos,
                                     end_pos=end_pos,
                                     score=100.0,
-                                    is_capture=False,
-                                    captured_piece=None,
-                                )
-                            )
-
-                        if (
-                            end_pos
-                            and unknown_piece
-                            and self.team == unknown_piece.team
-                        ):
-                            # Cell occupied by same team, check next move
-                            break
-
-            case "bishop":
-                start_pos = self.ind_pos
-
-                # directions=[left_forward, right_forward, left_backward, right_backward]
-                directions = [(1, -1), (1, 1), (-1, -1), (-1, 1)]
-                for dir in directions:
-                    for i in range(1, 8):
-                        end_pos = self._check_position_bounds(
-                            (start_pos[0] + i * dir[0], start_pos[1] + i * dir[1])
-                        )
-
-                        if not end_pos:
-                            continue
-
-                        unknown_piece = board.find_by_pos(end_pos, return_piece=True)
-                        # There are 3 states a board cell can be in.
-                        # 1. empty  2. Occupied by same team    3. Occupied by enemy team
-                        if (
-                            end_pos
-                            and unknown_piece
-                            and self.team != unknown_piece.team
-                        ):
-                            # Cell is occupied by enemy team, capture is registered as a valid move
-                            self.available_moves.append(
-                                self.m_factory(
-                                    piece=self,
-                                    start_pos=start_pos,
-                                    end_pos=end_pos,
-                                    score=100.0,
                                     is_capture=True,
                                     captured_piece=unknown_piece,
                                 )
                             )
-                            break
 
                         elif not unknown_piece:
-                            # Cell is unoccupied, move
-                            self.available_moves.append(
-                                self.m_factory(
-                                    piece=self,
-                                    start_pos=start_pos,
-                                    end_pos=end_pos,
-                                    score=50.0,
-                                    is_capture=False,
-                                    captured_piece=None,
-                                )
-                            )
-
-                        if (
-                            end_pos
-                            and unknown_piece
-                            and self.team == unknown_piece.team
-                        ):
-                            # Cell occupied by same team, check next move
-                            break
-
-            case "knight":
-                start_pos = self.ind_pos
-
-                directions = [
-                    (1, 2),
-                    (1, -2),
-                    (-1, 2),
-                    (-1, -2),
-                    (2, 1),
-                    (2, -1),
-                    (-2, 1),
-                    (-2, -1),
-                ]
-                for dir in directions:
-                    end_pos = self._check_position_bounds(
-                        (start_pos[0] + dir[0], start_pos[1] + dir[1])
-                    )
-
-                    if not end_pos:
-                        continue
-
-                    unknown_piece = board.find_by_pos(end_pos, return_piece=True)
-                    # There are 3 states a board cell can be in.
-                    # 1. empty  2. Occupied by same team    3. Occupied by enemy team
-                    if end_pos and unknown_piece and self.team != unknown_piece.team:
-                        # Cell is occupied by enemy team, capture is registered as a valid move
-                        self.available_moves.append(
-                            self.m_factory(
-                                piece=self,
-                                start_pos=start_pos,
-                                end_pos=end_pos,
-                                score=100.0,
-                                is_capture=True,
-                                captured_piece=unknown_piece,
-                            )
-                        )
-
-                    elif not unknown_piece:
-                        # Cell is unoccupied, move
-                        self.available_moves.append(
-                            self.m_factory(
-                                piece=self,
-                                start_pos=start_pos,
-                                end_pos=end_pos,
-                                score=0.0,
-                                is_capture=False,
-                                captured_piece=None,
-                            )
-                        )
-
-                    if end_pos and unknown_piece and self.team == unknown_piece.team:
-                        # Cell occupied by same team, check next move
-                        continue
-
-            case "pawn":
-                start_pos = self.ind_pos
-
-                home_pos = (
-                    2
-                    if (start_pos[1] == 1 and self.team == "w")
-                    or (start_pos[1] == 6 and self.team == "b")
-                    else 1
-                )
-                pawn_dir = 1 if self.team == "w" else -1
-
-                # directions=[forward, forward_right, forward_left]
-                directions = [(0, pawn_dir), (1, pawn_dir), (-1, pawn_dir)]
-                if home_pos == 2:
-                    directions.append((0, pawn_dir * 2))
-
-                for dir in directions:
-                    end_pos = self._check_position_bounds(
-                        (start_pos[0] + dir[0], start_pos[1] + dir[1])
-                    )
-
-                    if not end_pos:
-                        continue
-
-                    # REMINDME: Put condition for reaching final rank and promoting
-                    unknown_piece = board.find_by_pos(end_pos, return_piece=True)
-                    # There are 3 states a board cell can be in.
-                    # 1. empty  2. Occupied by same team    3. Occupied by enemy team
-                    if (
-                        end_pos
-                        and unknown_piece
-                        and self.team != unknown_piece.team
-                        and (dir != (0, pawn_dir * 1) or dir != (0, pawn_dir * 2))
-                    ):
-                        # Cell is occupied by enemy team, capture is registered as a valid move
-                        self.available_moves.append(
-                            self.m_factory(
-                                piece=self,
-                                start_pos=start_pos,
-                                end_pos=end_pos,
-                                score=20.0,
-                                is_capture=True,
-                                captured_piece=unknown_piece,
-                            )
-                        )
-
-                    elif not unknown_piece and (
-                        dir == (0, pawn_dir * 1) or dir == (0, pawn_dir * 2)
-                    ):
-
-                        inter_piece = board.find_by_pos(
-                            (end_pos[0], end_pos[1] * pawn_dir), return_piece=True
-                        )
-                        if inter_piece:
-                            if self.team == "w" and home_pos == 2:
-                                print(
-                                    f"Found piece {inter_piece.name} {inter_piece.team} at {inter_piece.ind_pos}"
-                                )
-                            # For the 2 step move originating from home,
-                            # check if there is a piece 1 step ahead before moving.
-                            continue
-                        else:
                             # Cell is unoccupied, move
                             self.available_moves.append(
                                 self.m_factory(
@@ -551,9 +492,97 @@ class Piece:
                                 )
                             )
 
-                    if end_pos and unknown_piece and self.team == unknown_piece.team:
-                        # Cell occupied by same team, check next move
-                        continue
+                        if (
+                            end_pos
+                            and unknown_piece
+                            and self.team == unknown_piece.team
+                        ):
+                            # Cell occupied by same team, check next move
+                            continue
+
+                case "pawn":
+                    start_pos = self.ind_pos
+
+                    home_pos = (
+                        2
+                        if (start_pos[1] == 1 and self.team == "w")
+                        or (start_pos[1] == 6 and self.team == "b")
+                        else 1
+                    )
+                    pawn_dir = 1 if self.team == "w" else -1
+
+                    # directions=[forward, forward_right, forward_left]
+                    directions = [(0, pawn_dir), (1, pawn_dir), (-1, pawn_dir)]
+                    if home_pos == 2:
+                        directions.append((0, pawn_dir * 2))
+
+                    for dir in directions:
+                        end_pos = self._check_position_bounds(
+                            (start_pos[0] + dir[0], start_pos[1] + dir[1])
+                        )
+
+                        if not end_pos:
+                            continue
+
+                        # REMINDME: Put condition for reaching final rank and promoting
+                        unknown_piece = board.find_by_pos(end_pos, return_piece=True)
+
+                        # There are 3 states a board cell can be in.
+                        # 1. empty  2. Occupied by same team    3. Occupied by enemy team
+                        if (
+                            end_pos
+                            and unknown_piece
+                            and self.team != unknown_piece.team
+                            and dir[0] != 0
+                        ):
+                            # print(dir, self, unknown_piece)
+
+                            # print(self, f"Capturing {unknown_piece}")
+                            # Cell is occupied by enemy team, capture is registered as a valid move
+                            self.available_moves.append(
+                                self.m_factory(
+                                    piece=self,
+                                    start_pos=start_pos,
+                                    end_pos=end_pos,
+                                    score=20.0,
+                                    is_capture=True,
+                                    captured_piece=unknown_piece,
+                                )
+                            )
+
+                        elif not unknown_piece and dir[0] == 0:
+
+                            inter_piece = board.find_by_pos(
+                                (end_pos[0], end_pos[1] * pawn_dir), return_piece=True
+                            )
+                            if inter_piece:
+                                # For the 2 step move originating from home,
+                                # check if there is a piece 1 step ahead before moving.
+                                break
+                            else:
+                                # Cell is unoccupied, move
+                                self.available_moves.append(
+                                    self.m_factory(
+                                        piece=self,
+                                        start_pos=start_pos,
+                                        end_pos=end_pos,
+                                        score=0.0,
+                                        is_capture=False,
+                                        captured_piece=None,
+                                    )
+                                )
+
+                        if (
+                            end_pos
+                            and unknown_piece
+                            and self.team == unknown_piece.team
+                            and dir[0] == 0
+                        ):
+                            # Cell occupied by same team, discard move
+
+                            # FIXME: THIS IS BAD :)
+                            directions.remove((0, pawn_dir * 2))
+                            continue
 
         return list(set(self.available_moves))
 

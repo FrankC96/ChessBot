@@ -13,7 +13,7 @@ if __name__ == "__main__":
     START_PLAYER = "w"
     CURRENT_PLAYER = START_PLAYER
 
-    BOARD = Board(SCREEN)
+    BOARD = Board(SCREEN, CURRENT_PLAYER)
 
     clock = pygame.time.Clock()
 
@@ -25,12 +25,15 @@ if __name__ == "__main__":
                 selected_block = BOARD.find_by_pos(event.pos)
 
                 selected_block.select_block(BOARD)
-                print(selected_block)
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    BOARD.load_prev_state()
 
             if event.type == pygame.QUIT:
                 running = False
 
-        SCREEN.fill((150, 150, 150))
+        SCREEN.fill((255, 255, 255))
 
         BOARD.update()
 
