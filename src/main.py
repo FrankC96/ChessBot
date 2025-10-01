@@ -2,7 +2,7 @@ import pygame
 from typing import Optional
 
 from board import Board, Block
-
+from bot import minimax
 
 if __name__ == "__main__":
     pygame.init()
@@ -10,10 +10,10 @@ if __name__ == "__main__":
     SCREEN = pygame.display.set_mode([0, 0], pygame.FULLSCREEN)
     SCREEN.fill([255, 255, 255])
 
-    START_PLAYER = "w"
-    CURRENT_PLAYER = START_PLAYER
+    HUMAN_PLAYER = "w"
+    BOT_PLAYER = "b"
 
-    BOARD = Board(SCREEN, CURRENT_PLAYER)
+    BOARD = Board(SCREEN, HUMAN_PLAYER)
 
     clock = pygame.time.Clock()
 
@@ -22,9 +22,13 @@ if __name__ == "__main__":
     while running:
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
-                selected_block = BOARD.find_by_pos(event.pos)
+                if HUMAN_PLAYER == BOARD.current_player:
+                    selected_block = BOARD.find_by_pos(event.pos)
 
-                selected_block.select_block(BOARD)
+                    selected_block.select_block(BOARD)
+                else:
+                    pass
+                    # best_move = minimax(BOARD, 2, BOT_PLAYER)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:

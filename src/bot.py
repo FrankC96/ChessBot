@@ -2,7 +2,7 @@ def minimax(board, depth, player, a=-float("inf"), b=float("inf")):
     """
     A simple implementation of the minimax function with alpha-beta pruning.
     """
-    if depth == 0 or board.game_over:
+    if depth == 0 or board.pieces:
         if not board.has_king("w"):
             return float("inf"), None, None
 

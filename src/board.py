@@ -49,82 +49,84 @@ class Block:
         return f"Block at {self.pos}, occupied {self.piece}"
 
     def select_block(self, board):
-        blocks = flatten_list(board.blocks)
+        if not board.game_over:
+            blocks = flatten_list(board.blocks)
 
-        # Reset the click cycle buffer to initial position
-        self.block_clicked = cycle([True, False])
+            # Reset the click cycle buffer to initial position
+            self.block_clicked = cycle([True, False])
 
-        # Reset the board
-        for block in blocks:
-            block.clicked = False
-            block.poss_move = False
+            # Reset the board
+            for block in blocks:
+                block.clicked = False
+                block.poss_move = False
 
-        self.clicked = next(self.block_clicked)
-        board.clicked_blocks.append(self)
+            self.clicked = next(self.block_clicked)
+            board.clicked_blocks.append(self)
 
-        if len(board.clicked_blocks) == 1 and self.piece:
-            """
-            Enter here when you have made the first selection on the
-            board and only if that selection is a block with a piece.
-            As a first selection you can't select an empty block.
-            The flow is:
-                Click()
-                    -> Show selected block
-                    -> Show poss. moves
-            """
+            if len(board.clicked_blocks) == 1 and self.piece:
+                """
+                Enter here when you have made the first selection on the
+                board and only if that selection is a block with a piece.
+                As a first selection you can't select an empty block.
+                The flow is:
+                    Click()
+                        -> Show selected block
+                        -> Show poss. moves
+                """
 
-            av_moves = self.piece.calculate_moves(board)
-            for mv in av_moves:
-                x, y = mv.end_pos
-                board.blocks[x][y].poss_move = True
+                av_moves = self.piece.calculate_moves(board)
+                for mv in av_moves:
+                    x, y = mv.end_pos
+                    board.blocks[x][y].poss_move = True
 
-        elif len(board.clicked_blocks) == 2:
-            """
-            Enter here only when you have selected the second block.
-            The flow is:
-                Click()
-                    -> Assuming the first selection was a piece. (which we ensure it is)
-                    -> Calculate the poss. moves of the starting piece (start_pos)
-                    -> Move to the second selection by the user (end_pos)
-                    -> Reset the board (?)
-                    -> Clear the clicked blocks cache
-            """
-            # On board change, store the board
-            board.serialize()
+            elif len(board.clicked_blocks) == 2:
+                """
+                Enter here only when you have selected the second block.
+                The flow is:
+                    Click()
+                        -> Assuming the first selection was a piece. (which we ensure it is)
+                        -> Calculate the poss. moves of the starting piece (start_pos)
+                        -> Move to the second selection by the user (end_pos)
+                        -> Reset the board (?)
+                        -> Clear the clicked blocks cache
+                """
+                # On board change, store the board
+                board.serialize()
 
-            start, end = board.clicked_blocks
-            if start.piece:
-                if board.clicked_blocks[-1] == self:
-                    # FIXME: There is a bug here, in the case of not appending a click
-                    # (else clause) it think's that you re-pressed the same block.
-                    for block in blocks:
-                        block.clicked = False
-                        block.poss_move = False
-                moves = start.piece.calculate_moves(board)
-                for mv in moves:
-                    if mv.end_pos == end.pos:
-                        board.move(board.clicked_blocks)
+                start, end = board.clicked_blocks
+                if start.piece:
+                    if board.clicked_blocks[-1] == self:
+                        # FIXME: There is a bug here, in the case of not appending a click
+                        # (else clause) it think's that you re-pressed the same block.
                         for block in blocks:
                             block.clicked = False
                             block.poss_move = False
 
-            if start != end:
-                board.current_player = next(board.players)
+                    moves = start.piece.calculate_moves(board)
+                    for mv in moves:
+                        if mv.end_pos == end.pos:
+                            board.move(board.clicked_blocks)
+                            for block in blocks:
+                                block.clicked = False
+                                block.poss_move = False
 
-            board.clicked_blocks.clear()
+                    if start != end and board.current_player != end.piece.team:
+                        board.current_player = next(board.players)
+                #
+                board.clicked_blocks.clear()
 
-        else:
-            """
-            We need to append a click to the cache for the logic to be checked.
-            If all the logic fails then just do nothing, clear the cache.
-            """
+            else:
+                """
+                We need to append a click to the cache for the logic to be checked.
+                If all the logic fails then just do nothing, clear the cache.
+                """
 
-            # Reset the click state buffer, only for visual
-            # no need to append to clicked_blocks, because
-            # it's not a valid selection.
-            self.clicked = next(self.block_clicked)
+                # Reset the click state buffer, only for visual
+                # no need to append to clicked_blocks, because
+                # it's not a valid selection.
+                self.clicked = next(self.block_clicked)
 
-            board.clicked_blocks.clear()
+                board.clicked_blocks.clear()
 
     def draw(self, screen: pygame.Surface):
         # Draw the background color of the block
@@ -169,6 +171,7 @@ class Board:
 
         self.players: List[str] = cycle(["b", "w"])
         self.current_player = player
+        self.human_player = player
 
         # A buffer to track all clicked blocks in the board
         self.clicked_blocks = deque([], maxlen=2)
@@ -177,6 +180,10 @@ class Board:
 
         # Variable to track how many times we perform an undo, or step ahead
         self.board_hist_mov: int = 0
+
+        # Game over condition
+        self.game_over: bool = False
+        self.winner: Optional[str] = None
 
         # Hardcoded positions for all pieces.
         init_positions = {
@@ -291,9 +298,15 @@ class Board:
         pygame.font.init()
         font = pygame.font.Font(None, 36)
 
-        curr_player_text = font.render(
-            f"Current player {self.current_player}", True, (0, 0, 0)
-        )
+        if self.current_player == self.human_player:
+            curr_player_text = font.render("Your move!", True, (0, 0, 0))
+        else:
+            curr_player_text = font.render("Searching for best move!", True, (0, 0, 0))
+
+        if self.game_over:
+            winner_text = font.render(f"Winner is {self.winner}!", True, (0, 0, 0))
+        else:
+            winner_text = None
 
         if len(self.clicked_blocks) > 1:
             self.move(self.clicked_blocks)
@@ -316,7 +329,12 @@ class Board:
             5,
         )
 
+        # Print current player
         self.screen.blit(curr_player_text, (board_width_bounds + 50, 100))
+
+        # Print winner of the game
+        if winner_text:
+            self.screen.blit(winner_text, (board_width_bounds + 50, 200))
 
     def serialize(self):
         """

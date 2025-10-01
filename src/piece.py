@@ -581,10 +581,18 @@ class Piece:
                             # Cell occupied by same team, discard move
 
                             # FIXME: THIS IS BAD :)
-                            directions.remove((0, pawn_dir * 2))
+                            if (0, pawn_dir * 2) in directions:
+                                directions.remove((0, pawn_dir * 2))
                             continue
 
-        return list(set(self.available_moves))
+        self.available_moves = list(set(self.available_moves))
+
+        for mv in self.available_moves:
+            if mv.captured_piece and mv.captured_piece.name == "king":
+                board.game_over = True
+                board.winner = self.team
+
+        return self.available_moves
 
 
 class PieceFactory:
