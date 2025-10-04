@@ -1,5 +1,6 @@
 import pygame
 from typing import Optional
+from math import inf
 
 from board import Board, Block
 from bot import minimax
@@ -12,7 +13,8 @@ if __name__ == "__main__":
 
     SCREEN.fill([255, 255, 255])
 
-    HUMAN_PLAYER = "w"
+    MAX_SEARCH_PLY = 3
+    HUMAN_PLAYER = "b"
     BOT_PLAYER = "b" if HUMAN_PLAYER == "w" else "w"
 
     BOARD = Board(MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, HUMAN_PLAYER)
@@ -25,30 +27,32 @@ if __name__ == "__main__":
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if BOARD.current_player == HUMAN_PLAYER:
-                    selected_block = BOARD.find_by_pos(event.pos)
-
+                    selected_block = BOARD.find_by_pos_mouse(event.pos)
                     selected_block.select_block(BOARD)
 
-                    # yes this is weird, but after a move is executed
-                    # the clicked_blocks cache becomes 0.
-                    # Since, we have already clicked a block, we know
-                    # that the next time the cache is 0, the human
-                    # player has performed a move.
+                if BOARD.current_player == BOT_PLAYER:
 
-                    if (
-                        len(BOARD.clicked_blocks) == 0
-                        and BOARD.current_player == BOT_PLAYER
-                    ):
-                        _, _, best_move = minimax(BOARD, 1, BOT_PLAYER)
+                    score, best_piece, best_move, states_expl = minimax(
+                        BOARD, MAX_SEARCH_PLY, BOT_PLAYER
+                    )
 
-                        x_start, y_start = best_move.start_pos
-                        x_end, y_end = best_move.end_pos
-                        start_block, end_block = (
-                            BOARD.blocks[x_start][y_start],
-                            BOARD.blocks[x_end][y_end],
+                    if score != abs(float(inf)):
+                        print("=" * 100)
+                        print(
+                            f"[{score}]\t->\t",
+                            f"Chosen {best_piece} move from {best_move.start_pos} to {best_move.end_pos}",
                         )
+                        print("=" * 100)
+                        print(f"Explored {states_expl} states.")
+                        if best_move:
+                            x_start, y_start = best_move.start_pos
+                            x_end, y_end = best_move.end_pos
+                            start_block, end_block = (
+                                BOARD.blocks[x_start][y_start],
+                                BOARD.blocks[x_end][y_end],
+                            )
 
-                        BOARD.move([start_block, end_block])
+                            BOARD.move([start_block, end_block])
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:

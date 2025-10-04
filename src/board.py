@@ -103,12 +103,14 @@ class Block:
                             block.poss_move = False
 
                     moves = start.piece.calculate_moves(board)
-                    for mv in moves:
+                    for idx, mv in enumerate(moves):
                         if mv.end_pos == end.pos:
                             board.move(board.clicked_blocks)
-                            for block in blocks:
-                                block.clicked = False
-                                block.poss_move = False
+                        else:
+                            continue
+                        for block in blocks:
+                            block.clicked = False
+                            block.poss_move = False
 
                 board.clicked_blocks.clear()
 
@@ -225,7 +227,7 @@ class Board:
 
         self.serialize()
 
-    def find_by_pos(
+    def find_by_pos_mouse(
         self, pos: Tuple[int, int], return_piece: Optional[bool] = None
     ) -> Optional[Piece]:
         """
@@ -253,15 +255,39 @@ class Board:
             if block.pg_rect.collidepoint(pos):
                 found_block = block
 
-        if return_piece:
-            # Are there 2 pieces in the board with the same position?
-            # print([p.ind_pos for p in self.pieces].count((3, 5)))
-            for piece in self.pieces:
-                x, y = piece.ind_pos
-                if (x, y) == pos:
-                    return piece
-        else:
-            return found_block
+        return found_block
+
+    def find_by_pos(self, pos: Tuple[int, int]) -> Optional[Piece]:
+        """
+        Method for finding a Piece object in the board by it's position.
+
+        Iterate through all of board pieces and match their position with the given position.
+        Checking for the team of the piece is unnecessary since we choose by position on the board.
+
+        Parameters
+        ----------
+        pos     : Tuple[int]
+            The posiiton we wish to investigate in the board.
+        Returns
+        -------
+        Union[bool, Piece]
+            The piece found or False.
+        """
+
+        # Are there 2 pieces in the board with the same position?
+        piece_positions = [p.ind_pos for p in self.pieces]
+        for i in range(8):
+            for j in range(8):
+                if piece_positions.count((i, j)) > 1:
+                    raise ValueError(f"A block cannot hold 2 pieces at the same time.")
+
+        found_piece: Optional[Piece] = None
+        for piece in self.pieces:
+            x, y = piece.ind_pos
+            if (x, y) == pos:
+                found_piece = piece
+
+        return found_piece
 
     def clear_selections(self):
         self.clicked_blocks = deque([], maxlen=2)
@@ -271,8 +297,9 @@ class Board:
         piece = blocks[0].piece
 
         if piece:
-            av_moves = [p.end_pos for p in piece.calculate_moves(self)]
+            # print([block.piece for block in blocks])
 
+            av_moves = [p.end_pos for p in piece.calculate_moves(self)]
             if blocks[1].pos in av_moves:
                 # Remove the captured piece
                 if blocks[0].piece and blocks[1].piece:
@@ -293,15 +320,9 @@ class Board:
         pygame.font.init()
         font = pygame.font.Font(None, 36)
 
-        if self.human_player == "w":
-            human_player_text = font.render("White: Human player!", True, (0, 0, 0))
-        else:
-            human_player_text = font.render("Black: Human player!", True, (0, 0, 0))
-
-        if self.bot_player == "w":
-            bot_player_text = font.render("White: Bot player!", True, (0, 0, 0))
-        else:
-            bot_player_text = font.render("Black: Bot player!", True, (0, 0, 0))
+        current_player_text = font.render(
+            f"Currently playing: {self.current_player}", True, (0, 0, 0)
+        )
 
         if self.game_over:
             winner_text = font.render(f"Winner is {self.winner}!", True, (0, 0, 0))
@@ -332,15 +353,14 @@ class Board:
             5,
         )
 
-        # Print current players
-        screen.blit(human_player_text, (board_width_bounds + 50, 100))
-        screen.blit(bot_player_text, (board_width_bounds + 50, 200))
+        # Print current player
+        screen.blit(current_player_text, (board_width_bounds + 50, 100))
 
         # Print winner of the game
         if winner_text:
             screen.blit(winner_text, (board_width_bounds + 50, 300))
 
-    def serialize(self):
+    def serialize(self, store: bool = True):
         """
         This is a string representation of the board.
         The standard FEN notation won't be used, because
@@ -367,9 +387,12 @@ class Board:
             board_state += str(piece.ind_pos[1])
         board_state += self.current_player
 
-        self.board_states.append(board_state)
+        if store:
+            self.board_states.append(board_state)
+        else:
+            return board_state
 
-    def load_prev_state(self):
+    def load_prev_state(self, state=None):
         """
         We need to convert the serialized string,
         to the Piece format.
@@ -387,7 +410,8 @@ class Board:
         for block in blocks:
             block.piece = None
 
-        state = self.board_states[-self.board_hist_mov]
+        if not state:
+            state = self.board_states[-self.board_hist_mov]
 
         # To avoid any excess iterations,
         # we know in "state", we represent each piece every 4 characters.
@@ -445,6 +469,7 @@ class Board:
         List[Piece]
             A list of all the pieces a player has.
         """
+
         return [piece for piece in self.pieces if piece.team == player]
 
     def score_board(self, player: str) -> float:
@@ -490,7 +515,7 @@ class Board:
         # The neutral point is 0.0 which is the starting score.
         # If player_score > opponent_score we have a positive score and a negative likewise.
         # The same applies for the valid_moves
-        return (player_score - opponent_score) + (
+        return (player_score - opponent_score) + 2 * (
             player_valid_moves - opponent_valid_moves
         )
 

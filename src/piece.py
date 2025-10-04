@@ -148,7 +148,7 @@ class Piece:
         self.m_factory = MoveFactory()
 
     def __repr__(self):
-        return f"Piece {self.name} - {self.team} at position {self.ind_pos}"
+        return f"Piece {self.team}-{self.name} at position {self.ind_pos}"
 
     def _check_position_bounds(self, pos: Tuple[int, int]) -> Optional[Tuple[int, int]]:
         """
@@ -214,7 +214,7 @@ class Piece:
                         if not end_pos:
                             continue
 
-                        unknown_piece = board.find_by_pos(end_pos, return_piece=True)
+                        unknown_piece = board.find_by_pos(end_pos)
 
                         # There are 3 states a board cell can be in.
                         # 1. empty  2. Occupied by same team    3. Occupied by enemy team
@@ -280,7 +280,7 @@ class Piece:
                                 continue
 
                             unknown_piece = board.find_by_pos(
-                                end_pos, return_piece=True
+                                end_pos,
                             )
                             # There are 3 states a board cell can be in.
                             # 1. empty  2. Occupied by same team    3. Occupied by enemy team
@@ -336,9 +336,7 @@ class Piece:
                             if not end_pos:
                                 continue
 
-                            unknown_piece = board.find_by_pos(
-                                end_pos, return_piece=True
-                            )
+                            unknown_piece = board.find_by_pos(end_pos)
                             # There are 3 states a board cell can be in.
                             # 1. empty  2. Occupied by same team    3. Occupied by enemy team
                             if (
@@ -394,9 +392,7 @@ class Piece:
                             if not end_pos:
                                 continue
 
-                            unknown_piece = board.find_by_pos(
-                                end_pos, return_piece=True
-                            )
+                            unknown_piece = board.find_by_pos(end_pos)
                             # There are 3 states a board cell can be in.
                             # 1. empty  2. Occupied by same team    3. Occupied by enemy team
                             if (
@@ -459,7 +455,7 @@ class Piece:
                         if not end_pos:
                             continue
 
-                        unknown_piece = board.find_by_pos(end_pos, return_piece=True)
+                        unknown_piece = board.find_by_pos(end_pos)
                         # There are 3 states a board cell can be in.
                         # 1. empty  2. Occupied by same team    3. Occupied by enemy team
                         if (
@@ -525,7 +521,7 @@ class Piece:
                             continue
 
                         # REMINDME: Put condition for reaching final rank and promoting
-                        unknown_piece = board.find_by_pos(end_pos, return_piece=True)
+                        unknown_piece = board.find_by_pos(end_pos)
 
                         # There are 3 states a board cell can be in.
                         # 1. empty  2. Occupied by same team    3. Occupied by enemy team
@@ -553,7 +549,7 @@ class Piece:
                         elif not unknown_piece and dir[0] == 0:
 
                             inter_piece = board.find_by_pos(
-                                (end_pos[0], end_pos[1] * pawn_dir), return_piece=True
+                                (end_pos[0], end_pos[1] * pawn_dir)
                             )
                             if inter_piece:
                                 # For the 2 step move originating from home,
@@ -586,11 +582,6 @@ class Piece:
                             continue
 
         self.available_moves = list(set(self.available_moves))
-
-        for mv in self.available_moves:
-            if mv.captured_piece and mv.captured_piece.name == "king":
-                board.game_over = True
-                board.winner = self.team
 
         return self.available_moves
 
