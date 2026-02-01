@@ -3,6 +3,7 @@ from typing import Optional
 from math import inf
 
 from board import Board, Block
+from piece import Move
 from bot import minimax
 
 if __name__ == "__main__":
@@ -13,11 +14,11 @@ if __name__ == "__main__":
 
     SCREEN.fill([255, 255, 255])
 
-    MAX_SEARCH_PLY = 3
+    MAX_SEARCH_PLY = 1
     HUMAN_PLAYER = "b"
     BOT_PLAYER = "b" if HUMAN_PLAYER == "w" else "w"
 
-    BOARD = Board(MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, HUMAN_PLAYER)
+    board = Board(MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, HUMAN_PLAYER)
 
     clock = pygame.time.Clock()
 
@@ -26,17 +27,18 @@ if __name__ == "__main__":
     while running:
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if BOARD.current_player == HUMAN_PLAYER:
-                    selected_block = BOARD.find_by_pos_mouse(event.pos)
-                    selected_block.select_block(BOARD)
+                if board.current_player == HUMAN_PLAYER:
+                    selected_block = board.find_by_pos_mouse(event.pos)
+                    
+                    if isinstance(selected_block, Block):
+                        selected_block.select_block(board)
 
-                if BOARD.current_player == BOT_PLAYER:
-
+                if board.current_player == BOT_PLAYER:
                     score, best_piece, best_move, states_expl = minimax(
-                        BOARD, MAX_SEARCH_PLY, BOT_PLAYER
+                        board, MAX_SEARCH_PLY, BOT_PLAYER
                     )
 
-                    if score != abs(float(inf)):
+                    if score != abs(float(inf)) and isinstance(best_move, Move):
                         print("=" * 100)
                         print(
                             f"[{score}]\t->\t",
@@ -48,26 +50,26 @@ if __name__ == "__main__":
                             x_start, y_start = best_move.start_pos
                             x_end, y_end = best_move.end_pos
                             start_block, end_block = (
-                                BOARD.blocks[x_start][y_start],
-                                BOARD.blocks[x_end][y_end],
+                                board.blocks[x_start][y_start],
+                                board.blocks[x_end][y_end],
                             )
 
-                            BOARD.move([start_block, end_block])
+                            board.move([start_block, end_block])
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
-                    BOARD.load_prev_state()
+                    board.load_prev_state()
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
-                    BOARD = Board(MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, HUMAN_PLAYER)
+                    board = Board(MAX_SCREEN_WIDTH, MAX_SCREEN_HEIGHT, HUMAN_PLAYER)
 
             if event.type == pygame.QUIT:
                 running = False
 
         SCREEN.fill((255, 255, 255))
 
-        BOARD.update(SCREEN)
+        board.update(SCREEN)
 
         pygame.display.flip()
 

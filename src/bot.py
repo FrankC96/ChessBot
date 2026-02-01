@@ -1,15 +1,21 @@
+from __future__ import annotations
 from math import inf
 
+from typing import List, Tuple, Optional, TextIO, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.board import Board
+    from src.piece import Piece, Move
 
 def minimax(
-    board,
-    depth,
-    player,
+    board: Board,
+    depth: int,
+    player: str,
     total_explored_states: int = 0,
-    a=-float("inf"),
-    b=float("inf"),
-    writer=None,
-):
+    a: float=-float("inf"),
+    b: float=float("inf"),
+    writer: Optional[TextIO]=None,
+) -> Tuple[float, Optional[Piece], Optional[Move], int]:
     """
     A simple implementation of the minimax function with alpha-beta pruning.
     """
@@ -40,7 +46,7 @@ def minimax(
         best_piece = None
         best_move = None
         for piece in board.get_pieces_for_player(player):
-            moves = piece.calculate_moves(board)
+            moves: List[Move] = piece.calculate_moves(board)
             sorted_moves = sorted(moves, key=lambda x: x.score, reverse=True)
             for move in sorted_moves:
                 new_board = board.clone()
@@ -56,8 +62,10 @@ def minimax(
                 new_board.move(
                     [new_board.blocks[x_start][y_start], new_board.blocks[x_end][y_end]]
                 )
-                writer.write(new_board.serialize(store=False) + "\n")
-
+                
+                new_board_state = new_board.serialize(store=False)
+                if isinstance(new_board_state, str):
+                    writer.write(new_board_state + "\n")
                 score, _, _, total_explored_states = minimax(
                     new_board,
                     depth - 1,
@@ -99,7 +107,10 @@ def minimax(
                 new_board.move(
                     [new_board.blocks[x_start][y_start], new_board.blocks[x_end][y_end]]
                 )
-                writer.write(new_board.serialize(store=False) + "\n")
+
+                new_board_state = new_board.serialize(store=False)
+                if isinstance(new_board_state, str):
+                    writer.write(new_board_state + "\n")
 
                 score, _, _, total_explored_states = minimax(
                     new_board,

@@ -1,14 +1,15 @@
+from __future__ import annotations
 import copy
 import pygame
 from itertools import cycle
 from collections import deque
 
-from typing import Tuple, List, Dict, Optional, Union
-from piece import Piece, PieceFactory, Move, MoveFactory
+from typing import Tuple, List, Optional, Sequence
+from piece import Piece, PieceFactory, MoveFactory
 
 
-def flatten_list(list_: List):
-    flattened_list = []
+def flatten_list(list_: List[List["Block"]]) -> List["Block"]:
+    flattened_list: List["Block"] = []
     for row in list_:
         flattened_list.extend(row)
 
@@ -16,26 +17,25 @@ def flatten_list(list_: List):
 
 
 class Block:
-
     def __init__(
         self,
         pos: Tuple[int, int],
-        piece: Optional[str],
-        color: Tuple[int, int],
+        color: Tuple[int, int, int],
         block_size: int,
-        clicked: Optional[bool] = False,
-        clicked_color: Optional[Tuple[int, int, int]] = (200, 0, 0),
+        clicked: bool = False,
+        clicked_color: Tuple[int, int, int] = (200, 0, 0),
     ):
         self.pos = pos
-        self.piece = piece
         self.color = color
         self.block_size = block_size
         self.clicked = clicked
         self.clicked_color = clicked_color
 
+        self.piece: Optional[Piece] = None
+
         self.poss_move: bool = False
-        self.block_clicked: List[bool] = cycle([True, False])
-        self.block_p_move: List[bool] = cycle([True, False])
+        self.block_clicked: cycle[bool] = cycle([True, False])
+        self.block_p_move: cycle[bool] = cycle([True, False])
 
         # Rect(left, top, width, height) -> Rect
         self.pg_rect = pygame.Rect(
@@ -48,7 +48,7 @@ class Block:
     def __repr__(self):
         return f"Block at {self.pos}, occupied {self.piece}"
 
-    def select_block(self, board):
+    def select_block(self, board: "Board"):
         if not board.game_over:
             blocks = flatten_list(board.blocks)
 
@@ -73,7 +73,7 @@ class Block:
                         -> Show selected block
                         -> Show poss. moves
                 """
-
+                
                 av_moves = self.piece.calculate_moves(board)
                 for mv in av_moves:
                     x, y = mv.end_pos
@@ -103,7 +103,7 @@ class Block:
                             block.poss_move = False
 
                     moves = start.piece.calculate_moves(board)
-                    for idx, mv in enumerate(moves):
+                    for mv in moves:
                         if mv.end_pos == end.pos:
                             board.move(board.clicked_blocks)
                         else:
@@ -150,9 +150,9 @@ class Block:
 
 class BlockFactory:
     def __call__(
-        self, pos: Tuple[int, int], piece: str, color: Tuple[int, int], block_size: int
+        self, pos: Tuple[int, int], color: Tuple[int, int, int], block_size: int
     ):
-        return Block(pos, piece, color, block_size)
+        return Block(pos, color, block_size)
 
 
 class Board:
@@ -161,6 +161,7 @@ class Board:
 
         # Get screen widht, height borders
         self.s_width, self.s_height = width, height
+
         self.block_factory = BlockFactory()
         self.piece_factory = PieceFactory((self.s_width, self.s_height))
         self.move_factory = MoveFactory()
@@ -172,7 +173,7 @@ class Board:
         self.bot_player = self.players[0]
 
         # A buffer to track all clicked blocks in the board
-        self.clicked_blocks = deque([], maxlen=2)
+        self.clicked_blocks: deque["Block"] = deque([], maxlen=2)
         self.block_to_exec_move: Optional[Block] = None
         self.board_states: List[str] = []
 
@@ -194,15 +195,14 @@ class Board:
         }
 
         # Create 64 Block objects
-        self.blocks = []
+        self.blocks: List[List[Block]] = []
         for i in range(8):
-            row_blocks = []
+            row_blocks: List["Block"] = []
             for j in range(8):
                 block_color = (255, 255, 255) if (i + j) % 2 == 0 else (0, 100, 0)
                 row_blocks.append(
                     self.block_factory(
                         pos=(i, j),
-                        piece=None,
                         color=block_color,
                         block_size=self.s_width // 7,
                     )
@@ -210,7 +210,7 @@ class Board:
             self.blocks.append(row_blocks)
 
         # Create the board pieces
-        self.pieces = []
+        self.pieces: List[Piece] = []
         for name, pos in init_positions.items():
             i = 0
             for p in pos:
@@ -229,7 +229,7 @@ class Board:
 
     def find_by_pos_mouse(
         self, pos: Tuple[int, int], return_piece: Optional[bool] = None
-    ) -> Optional[Piece]:
+    ) -> Optional[Block]:
         """
         Method for finding a Piece object in the board by it's position.
 
@@ -292,31 +292,31 @@ class Board:
     def clear_selections(self):
         self.clicked_blocks = deque([], maxlen=2)
 
-    def move(self, blocks):
+    def move(self, blocks: Sequence[Block]):
         """This ASSUMES that blocks are already of length 2"""
-        piece = blocks[0].piece
+        piece: Optional[Piece] = blocks[0].piece
 
-        if piece:
+        if isinstance(piece, Piece):
             # print([block.piece for block in blocks])
 
             av_moves = [p.end_pos for p in piece.calculate_moves(self)]
             if blocks[1].pos in av_moves:
                 # Remove the captured piece
-                if blocks[0].piece and blocks[1].piece:
-                    # print(f"Removing block {blocks[1].piece}")
+                if isinstance(blocks[0].piece, Piece) and isinstance(blocks[1].piece, Piece):
                     self.pieces.remove(blocks[1].piece)
 
-                blocks[1].piece = blocks[0].piece
-                blocks[1].piece.name = blocks[0].piece.name
-                blocks[1].piece.team = blocks[0].piece.team
-                blocks[1].piece.ind_pos = blocks[1].pos
-                blocks[1].piece.img_path = blocks[0].piece.img_path
-                blocks[0].piece = None
+                if isinstance(blocks[0].piece, Piece):
+                    blocks[1].piece = blocks[0].piece
+                    blocks[1].piece.name = blocks[0].piece.name
+                    blocks[1].piece.team = blocks[0].piece.team
+                    blocks[1].piece.ind_pos = blocks[1].pos
+                    blocks[1].piece.img_path = blocks[0].piece.img_path
+                    blocks[0].piece = None
 
             self.clear_selections()
             self.current_player = next(self.c_players)
 
-    def update(self, screen):
+    def update(self, screen: pygame.Surface):
         pygame.font.init()
         font = pygame.font.Font(None, 36)
 
@@ -360,7 +360,7 @@ class Board:
         if winner_text:
             screen.blit(winner_text, (board_width_bounds + 50, 300))
 
-    def serialize(self, store: bool = True):
+    def serialize(self, store: bool = True) -> Optional[str]:
         """
         This is a string representation of the board.
         The standard FEN notation won't be used, because
@@ -392,7 +392,7 @@ class Board:
         else:
             return board_state
 
-    def load_prev_state(self, state=None):
+    def load_prev_state(self, state: Optional[str]=None):
         """
         We need to convert the serialized string,
         to the Piece format.
@@ -437,6 +437,8 @@ class Board:
                     name = "knight"
                 case "P":
                     name = "pawn"
+                case _:
+                    raise NotImplementedError("Trying to identify a piece from a state string that does not exist!")
 
             pos = (int(piece_repr[2]), int(piece_repr[3]))
 

@@ -1,5 +1,4 @@
 from __future__ import annotations
-import copy
 from pathlib import Path
 
 from typing import List, Tuple, Optional, TYPE_CHECKING
@@ -43,7 +42,7 @@ class Move:
         self.is_capture = is_capture
         self.captured_piece = captured_piece
 
-    def __lt__(self, other: "Move"):
+    def __lt__(self, other: "Move") -> Optional[bool]:
         """
         Compare Moves based on their score.
 
@@ -83,9 +82,9 @@ class MoveFactory:
         piece: Piece,
         start_pos: Tuple[int, int],
         end_pos: Tuple[int, int],
-        score: Optional[float] = None,
-        is_capture: Optional[bool] = None,
-        captured_piece: Optional[Piece] = None,
+        score: float,
+        is_capture: bool,
+        captured_piece: Optional[Piece],
     ):
         """
         piece : Piece
@@ -175,7 +174,7 @@ class Piece:
 
         return in_bounds
 
-    def calculate_moves(self, board) -> List["Move"]:
+    def calculate_moves(self, board: Board) -> List[Move]:
         """
         Method to calculate all possible moves for a piece.
 
@@ -580,6 +579,8 @@ class Piece:
                             if (0, pawn_dir * 2) in directions:
                                 directions.remove((0, pawn_dir * 2))
                             continue
+                case _:
+                    raise NotImplementedError("Wrong piece to get moves!") 
 
         self.available_moves = list(set(self.available_moves))
 
